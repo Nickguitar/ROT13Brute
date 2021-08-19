@@ -3,6 +3,8 @@ ROT13 brute forcer made in x64 assembly
 
 This is my implementation of a ROT13 bruteforcer.
 
+This is not the best way to implement this, it's just the simplest way I found (which doesn't mean it's the simplest one)
+
 ## Assembling and liniking
 
 ```
