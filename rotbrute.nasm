@@ -199,15 +199,14 @@ section .text
 		jmp _isSpace		;if so, do not add 1
 	_checkNL:
 		cmp byte [rax], 0xA
-		jnz _checkNum1
+		jnz _checkNum0
 		jmp _isSpace		;ignore newlines
-	_checkNum1:
+	_checkNum0:
 		cmp byte [rax], 0x30
-		jge _checkNum2		;ignore numbers
-	_checkNum2:
+		jge _checkNum9		;ignore numbers
+	_checkNum9:
 		cmp byte [rax], 0x39
 		jle _isSpace
-	_continue:
 		add byte [rax], 1	;add 1 to char (e.g: a+1 = b)
 	_isSpace:
 		inc rax			;move char to next position >>
