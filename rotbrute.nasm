@@ -1,12 +1,7 @@
 ;Nicholas Ferreira - 18/08/21
 ;ROT13 bruteforce
-;Prints all 26 ROT variations of the input
+;Prints all 26 ROT variations
 ;
-;Run via ./rotbrute <file> or via pipe
-;E.g: echo -n "docdo" | ./rotbrute
-;
-;This code was not intended to be the best
-;and it's probably the worst. I'm learning =)
 
 global _start
 
@@ -18,7 +13,7 @@ OPEN equ	2
 FSTAT equ	5
 MMAP equ	9
 EXIT equ	60
-BUF equ 	2048		;stdin buffer
+BUF equ 	64		;stdin buffer
 MREMAP equ	25
 
 ; ================ MACROS
@@ -99,7 +94,7 @@ section .text
 		mov rdi, [rbp+32]	;filepath
 		syscall
 		leave
-		ret			;result goes in rdi
+		ret					;result goes in rdi
 
 	_filesize:
 		push rbp
@@ -175,19 +170,19 @@ section .text
 	;			str[i] = charset[j+1]
 	;	i++
 
-	_magic:				;encode/decode
+	_magic:					;encode/decode
 		push rbp
 		mov rbp, rsp
 		mov rax, [rbp+8]	;mem addr with file contents
 		mov rbx, [rbp+16]	;filesize
-		push rbx		;save filesize for later
+		push rbx			;save filesize for later
 		add rbx, rax		;addr+filesize
-		push rax		;popped at the end
+		push rax			;popped at the end
 
-		mov rcx, 1		;ROT index
+		mov rcx, 1			;ROT index
 	_checkz:
 		cmp byte [rax],0x7A	;check if current char n is 'z'
-		jnz _checkZ		;if not, go check if it's a capital 'z'
+		jnz _checkZ			;if not, go check if it's a capital 'z'
 		mov byte [rax],0x60	;if so, set current char to before 'a'
 	_checkZ:
 		cmp byte [rax],0x5A	;check if current char is 'Z'
@@ -196,75 +191,75 @@ section .text
 	_checkSpace:
 		cmp byte [rax],0x20	;check if current byte is 0x20 (space)
 		jnz _checkNL		;if not, continue normally
-		jmp _isSpace		;if so, do not add 1
+		jmp _next		;if so, do not add 1
 	_checkNL:
 		cmp byte [rax], 0xA
 		jnz _checkNum0
-		jmp _isSpace		;ignore newlines
+		jmp _next			;ignore newlines
 	_checkNum0:
 		cmp byte [rax], 0x30
 		jge _checkNum9		;ignore numbers
 	_checkNum9:
 		cmp byte [rax], 0x39
-		jle _isSpace
+		jle _next
+;	_continue:
 		add byte [rax], 1	;add 1 to char (e.g: a+1 = b)
-	_isSpace:
-		inc rax			;move char to next position >>
+	_next:
+		inc rax				;move char to next position >>
 		cmp rax, rbx		;is the current position the end?
 
-		jle _checkz		;if not, goto next byte
+		jle _checkz			;if not, goto next byte
 		mov rdx, [rsp]		;mov string encoded to rdx
 		mov r9, [rsp+8]		;filesize
-		push rax		;saving...
-		push rcx		;saving...
-		push rdx		;saving...
+		push rax			;saving...
+		push rcx			;saving...
+		push rdx			;saving...
 
-		jz _magic
+;		jz _magic
 		write 1, rdx, r9	;print the encoded string
 		write 1, nl, 2		;print newline
-		pop rdx			;retrieving...
-		pop rcx			;retrieving...
-		pop rax			;retrieving...
-		inc rcx			;next index
+		pop rdx				;retrieving...
+		pop rcx				;retrieving...
+		pop rax				;retrieving...
+		inc rcx				;next index
 		mov rax, rdx		;make rax its initial value
-		cmp rcx, 25		;25 bc/ original was already printed
-		jle _checkz		;if index >=25, repeat
-		pop rax			;retrieve addr
+		cmp rcx, 25			;25 bc/ original was already printed
+		jle _checkz			;if index >=25, repeat
+;		pop rax				;retrieve addr
 		exit
 		leave
 		ret
 
-	_checkStdin:			;verify if is len(stdin)>0
+	_checkStdin:
 		push rbp
 		mov rbp, rsp
-		mmap 0, BUF		;allocate a mem buffer to receive stdin
+		mmap 0, BUF
 		mov r14, rax
 		mov r15, rax		;this will be incremented
-		push rax		;saves addr of mapped mem
+		push rax			;saves addr of mapped mem
 		read 0, rax, BUF	;tries to read from stdin
-		cmp rax, 0		;if it read more than 0 bytes
+		cmp rax, 0			;if it read more than 0 bytes
 		jnz _hasStdin		;then there is stdin
 		jmp _usage
 
 	_hasStdin:
 		push BUF
 
-	_loop:				;this will read the stdin every 100 bytes 
-        				;and increase the size of the memory allocated as needed
-		pop rcx			;old size
-		pop rax			;addr of mapped mem
+	_loop:
+		pop rcx				;old size
+		pop rax				;addr of mapped mem
 		mov rbx, rcx		;save old size
 		add rcx, BUF		;new size = old size + BUF
-		push rcx		;save new file (will be the next old)
-		mremap rax, rbx, rcx    ;remap (increase allocated mem size)
+		push rcx			;save new file (will be the next old)
+		mremap rax, rbx, rcx;remap
 		pop rcx
-		push rax		;addr of mapped mem
+		push rax			;addr of mapped mem
 		push rcx
 		add r15, BUF
 		read 0, r15, BUF
-		cmp rax, 0		;if it read more than 0 bytes
+		cmp rax, 0			;if it read more than 0 bytes
 		jnz _loop
-		mov r9, rbx		;move size to r9 and rax
+;		mov r9, rbx		;move size to r9 and rax
 		mov rax, rbx
 		mov rdx, r14		;mov mem addr to rdx
 		leave
@@ -280,8 +275,8 @@ section .text
 ; ================ MAIN
 
 	_start:
-		pop rax			;argc
-		cmp rax, 2		;if argc >= 2
+		pop rax				;argc
+		cmp rax, 2			;if argc >= 2
 
 		jge _hasArgument	;	there are arguments
 		call _checkStdin	;else, check if there is stdin
@@ -289,30 +284,30 @@ section .text
 
 	_hasArgument:			;read file from first argument
 		mov rax, [rsp+8]	;argv[1]
-		push rax		;save argv on stack
+		push rax			;save argv on stack
 		open rax, 0, 0		;path, flags (R/W), perm
-		cmp rax, 0		;fd
+		cmp rax, 0			;fd
 		jl _notfound		;if fd<0 then exit
-		push rax 		;save fd in stack
+		push rax 			;save fd in stack
 		filesize rax		;get filesize from fd = n
 		cmp rax, 0
-		jz _exit		;exit if filesize = 0
+		jz _exit			;exit if filesize = 0
 
-		push rax		;save filesize (n) in stack
-		mmap 0,rax		;maps n bytes
+		push rax			;save filesize (n) in stack
+		mmap 0,rax			;maps n bytes
 
 		mov rcx, [rsp]		;filesize
 		mov rbx, [rsp+8]	;fd
 		mov rdx, rax		;pointer to allocated memory
-		push rdx		;save this pointer in stack
+		push rdx			;save this pointer in stack
 		push rdx
 		read rbx, rax, rcx
-		mov r9, rax		;save number of bytes read
-		pop rdx			;retrieve pointer to memory
+		mov r9, rax			;save number of bytes read
+		pop rdx				;retrieve pointer to memory
 
 	_begin:
 		push rax
 		push rdx
 		write 1, rdx, rax	;print with index 0
 		write 1, nl, 1		;print newline
-		jmp _magic		;encode/decode
+		jmp _magic			;encode/decode
